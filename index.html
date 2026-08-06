@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="탕비실 간식런 — 익명으로 탕비실 간식을 건의하고 와글와글 떠드는 곳">
+  <title>탕비실 간식런 🏃</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍫</text></svg>">
+</head>
+<body>
+  <header>
+    <div class="logo">🏃 탕비실 간식런</div>
+    <div id="identity-chip" class="chip" title="오늘의 익명 닉네임"></div>
+  </header>
+
+  <div id="demo-banner" class="banner hidden">🧪 데모 모드 — Firebase 연동 전이라 데이터가 이 브라우저에만 저장돼요 (SETUP.md 참고)</div>
+  <div id="king-banner" class="king-banner hidden"></div>
+
+  <main id="bubble-field">
+    <div id="empty-state" class="hidden">아직 건의된 간식이 없어요!<br>첫 간식을 건의해보세요 🍫</div>
+  </main>
+
+  <button id="fab">🍩 간식 건의</button>
+
+  <div id="backdrop" class="backdrop"></div>
+
+  <!-- 간식 건의 시트 -->
+  <div id="submit-sheet" class="sheet">
+    <div class="sheet-head">
+      <h2>🍫 간식 건의하기</h2>
+      <button class="x" id="submit-close" type="button" aria-label="닫기">✕</button>
+    </div>
+    <form id="submit-form">
+      <label>간식 이름 *
+        <input id="f-name" maxlength="40" required placeholder="예) 초코파이 情">
+      </label>
+      <label>쿠팡 링크 *
+        <input id="f-url" required inputmode="url" placeholder="https://www.coupang.com/... 또는 링크 공유 주소">
+      </label>
+      <label>건의 이유
+        <textarea id="f-reason" maxlength="200" rows="2" placeholder="예) 야근엔 초콜릿이 국룰이라서요"></textarea>
+      </label>
+      <label>아이콘 고르기</label>
+      <div id="emoji-picker"></div>
+      <label>상품 이미지 URL <span class="opt">(선택)</span>
+        <input id="f-image" inputmode="url" placeholder="쿠팡 상품 사진 길게 눌러 '이미지 주소 복사' 후 붙여넣기">
+      </label>
+      <p id="f-error" class="err hidden"></p>
+      <button class="primary" type="submit">건의 올리기 🚀</button>
+    </form>
+  </div>
+
+  <!-- 간식 상세 시트 -->
+  <div id="detail-sheet" class="sheet">
+    <div class="sheet-head">
+      <div></div>
+      <button class="x" id="detail-close" type="button" aria-label="닫기">✕</button>
+    </div>
+    <div id="detail-head"></div>
+    <div id="comment-list"></div>
+    <form id="comment-form">
+      <span id="c-ava"></span>
+      <input id="c-input" maxlength="300" autocomplete="off" placeholder="익명으로 한마디...">
+      <button class="primary small" type="submit">등록</button>
+    </form>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
