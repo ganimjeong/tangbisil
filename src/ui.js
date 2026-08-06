@@ -11,7 +11,7 @@ const EMOJIS = ['🍫', '🍪', '🥤', '🍜', '🍬', '🍭', '🍩', '🍙', 
 const REACTIONS = [
   ['want', '🤤', '먹고싶다'],
   ['buy', '🙏', '사주세요'],
-  ['no', '🙅', '억까ㄴㄴ'],
+  ['no', '🙅', '이건아니지예'],
 ]
 
 const me = getIdentity()
