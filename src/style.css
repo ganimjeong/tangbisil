@@ -50,6 +50,25 @@ header {
   box-shadow: 0 2px 8px rgba(180, 110, 60, 0.15);
 }
 
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.icon-btn {
+  border: none;
+  background: #fff;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  font-size: 17px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(180, 110, 60, 0.15);
+  transition: transform 0.15s;
+}
+.icon-btn:active { transform: scale(0.9); }
+
 .banner {
   margin: 0 16px 8px;
   padding: 8px 12px;
@@ -181,6 +200,13 @@ header {
   0% { scale: 1; }
   40% { scale: 1.16; }
   100% { scale: 1; }
+}
+
+.bubble.popping { animation: pop-out 0.45s ease-out forwards; }
+@keyframes pop-out {
+  0% { scale: 1; opacity: 1; }
+  35% { scale: 1.25; opacity: 1; }
+  100% { scale: 1.7; opacity: 0; filter: blur(4px); }
 }
 
 /* ---------- FAB ---------- */
@@ -402,6 +428,92 @@ header {
   box-shadow: 0 2px 8px rgba(255, 122, 61, 0.25);
 }
 .d-reactions button:active { transform: scale(0.95); }
+
+/* ---------- 관리자: 버블 터뜨리기 ---------- */
+
+.pop-btn {
+  width: 100%;
+  margin-top: 12px;
+  border: none;
+  border-radius: 14px;
+  padding: 13px;
+  font-size: 15px;
+  font-weight: 800;
+  color: #fff;
+  background: linear-gradient(135deg, #ff5d5d, #e03131);
+  box-shadow: 0 4px 14px rgba(224, 49, 49, 0.35);
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+.pop-btn:active { transform: scale(0.97); }
+
+/* ---------- 완판 히스토리 ---------- */
+
+.history-desc {
+  font-size: 13px;
+  color: var(--ink-soft);
+  margin-bottom: 10px;
+  flex-shrink: 0;
+}
+
+#history-list {
+  overflow-y: auto;
+  min-height: 120px;
+  max-height: 60dvh;
+}
+
+.h-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 4px;
+  border-bottom: 1px solid #f5ede6;
+}
+.h-item:last-child { border-bottom: none; }
+
+.h-emoji {
+  font-size: 26px;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-content: center;
+  background: #faf3ec;
+  border-radius: 14px;
+  flex-shrink: 0;
+}
+
+.h-img {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background-size: cover;
+  background-position: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.h-body { flex: 1; min-width: 0; }
+.h-name {
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.h-time { font-size: 12px; color: var(--ink-soft); margin-top: 2px; }
+
+.h-del {
+  border: none;
+  background: #f5ede6;
+  color: var(--ink-soft);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: 12px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.h-del:active { background: #ffdada; color: #d43d17; }
 
 /* ---------- 댓글 ---------- */
 

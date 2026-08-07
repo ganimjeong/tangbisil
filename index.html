@@ -10,7 +10,10 @@
 <body>
   <header>
     <div class="logo">🏃 탕비실 간식런</div>
-    <div id="identity-chip" class="chip" title="오늘의 익명 닉네임"></div>
+    <div class="header-right">
+      <div id="identity-chip" class="chip" title="오늘의 익명 닉네임"></div>
+      <button id="history-btn" class="icon-btn" type="button" title="완판 히스토리" aria-label="완판 히스토리">🏆</button>
+    </div>
   </header>
 
   <div id="demo-banner" class="banner hidden">🧪 데모 모드 — Firebase 연동 전이라 데이터가 이 브라우저에만 저장돼요 (SETUP.md 참고)</div>
@@ -63,6 +66,16 @@
       <input id="c-input" maxlength="300" autocomplete="off" placeholder="익명으로 한마디...">
       <button class="primary small" type="submit">등록</button>
     </form>
+  </div>
+
+  <!-- 완판 히스토리 시트 -->
+  <div id="history-sheet" class="sheet">
+    <div class="sheet-head">
+      <h2>🏆 완판된 간식들</h2>
+      <button class="x" id="history-close" type="button" aria-label="닫기">✕</button>
+    </div>
+    <p class="history-desc">관리자가 구매 완료한 간식이 여기 남아요 🎉</p>
+    <div id="history-list"></div>
   </div>
 
   <script type="module" src="/src/main.js"></script>

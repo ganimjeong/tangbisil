@@ -1,7 +1,7 @@
 import { initializeApp } from 'firebase/app'
 import {
   getFirestore, collection, doc, onSnapshot, addDoc, updateDoc,
-  increment, serverTimestamp, query, orderBy,
+  increment, serverTimestamp, query, orderBy, getDocs, deleteDoc,
 } from 'firebase/firestore'
 import { firebaseConfig } from './firebase-config.js'
 
@@ -15,6 +15,9 @@ export const addSnack = store.addSnack
 export const subscribeComments = store.subscribeComments
 export const addComment = store.addComment
 export const react = store.react
+export const popSnack = store.popSnack
+export const subscribeHistory = store.subscribeHistory
+export const deleteHistory = store.deleteHistory
 
 /* ---------- Firestore ---------- */
 
@@ -52,6 +55,29 @@ function firestoreStore() {
       if (remove) patch['reactions.' + remove] = increment(-1)
       if (Object.keys(patch).length) await updateDoc(doc(db, 'snacks', snackId), patch)
     },
+    // 구매 완료 → 히스토리에 남기고 버블(+댓글) 삭제
+    async popSnack(snack) {
+      await addDoc(collection(db, 'history'), {
+        name: snack.name || '',
+        emoji: snack.emoji || null,
+        image: snack.image || null,
+        poppedAt: serverTimestamp(),
+      })
+      const cs = await getDocs(collection(db, 'snacks', snack.id, 'comments'))
+      await Promise.all(cs.docs.map(d => deleteDoc(d.ref)))
+      await deleteDoc(doc(db, 'snacks', snack.id))
+    },
+    subscribeHistory(cb) {
+      return onSnapshot(collection(db, 'history'), snap => {
+        const list = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        // serverTimestamp가 아직 안 찍힌 로컬 문서는 맨 앞으로
+        list.sort((a, b) => (b.poppedAt?.toMillis?.() ?? Infinity) - (a.poppedAt?.toMillis?.() ?? Infinity))
+        cb(list)
+      })
+    },
+    async deleteHistory(id) {
+      await deleteDoc(doc(db, 'history', id))
+    },
   }
 }
 
@@ -62,10 +88,12 @@ function mockStore() {
   let data = null
   try { data = JSON.parse(localStorage.getItem(KEY)) } catch { /* 새로 시드 */ }
   if (!data?.snacks) data = seed()
+  if (!Array.isArray(data.history)) data.history = []
   const save = () => localStorage.setItem(KEY, JSON.stringify(data))
   save()
 
   const snackSubs = new Set()
+  const historySubs = new Set()
   const commentSubs = new Map() // snackId -> Set<cb>
   const uid = () => 'm' + Math.random().toString(36).slice(2, 10)
 
@@ -75,6 +103,10 @@ function mockStore() {
     commentCount: s.comments.length, createdAt: s.createdAt,
   }))
   const emitSnacks = () => { const l = snackList(); snackSubs.forEach(cb => cb(l)) }
+  const emitHistory = () => {
+    const l = [...data.history].sort((a, b) => (b.poppedAt || 0) - (a.poppedAt || 0))
+    historySubs.forEach(cb => cb(l))
+  }
   const emitComments = id => {
     const s = data.snacks.find(x => x.id === id)
     ;(commentSubs.get(id) || []).forEach(cb => cb(s ? [...s.comments] : []))
@@ -111,6 +143,25 @@ function mockStore() {
       if (add) s.reactions[add] = (s.reactions[add] || 0) + 1
       if (remove) s.reactions[remove] = Math.max(0, (s.reactions[remove] || 0) - 1)
       save(); emitSnacks()
+    },
+    async popSnack(snack) {
+      const i = data.snacks.findIndex(x => x.id === snack.id)
+      if (i < 0) return
+      data.history.push({
+        id: uid(), name: snack.name || '', emoji: snack.emoji || null,
+        image: snack.image || null, poppedAt: Date.now(),
+      })
+      data.snacks.splice(i, 1)
+      save(); emitSnacks(); emitHistory()
+    },
+    subscribeHistory(cb) {
+      historySubs.add(cb)
+      emitHistory()
+      return () => historySubs.delete(cb)
+    },
+    async deleteHistory(id) {
+      data.history = data.history.filter(h => h.id !== id)
+      save(); emitHistory()
     },
   }
 }

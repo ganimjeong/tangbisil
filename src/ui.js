@@ -1,7 +1,11 @@
 import confetti from 'canvas-confetti'
-import { addSnack, addComment, react, subscribeComments } from './store.js'
+import {
+  addSnack, addComment, react, subscribeComments,
+  popSnack, subscribeHistory, deleteHistory,
+} from './store.js'
 import { getIdentity } from './nickname.js'
-import { scoreOf } from './bubbles.js'
+import { scoreOf, popBubble } from './bubbles.js'
+import { isAdmin, onAdmin } from './admin.js'
 
 const $ = sel => document.querySelector(sel)
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
@@ -16,6 +20,7 @@ const REACTIONS = [
 
 const me = getIdentity()
 let snacks = new Map()
+let history = []
 let detailId = null
 let unsubComments = null
 let selectedEmoji = EMOJIS[0]
@@ -29,8 +34,17 @@ export function init() {
   $('#backdrop').addEventListener('click', closeAll)
   $('#submit-close').addEventListener('click', closeAll)
   $('#detail-close').addEventListener('click', closeAll)
+  $('#history-close').addEventListener('click', closeAll)
+  $('#history-btn').addEventListener('click', openHistory)
   $('#submit-form').addEventListener('submit', onSubmitSnack)
   $('#comment-form').addEventListener('submit', onSubmitComment)
+
+  subscribeHistory(list => { history = list; renderHistory() })
+  onAdmin(() => {
+    $('#identity-chip').textContent = `🛡️ ${me.avatar} ${me.nick}`
+    if (detailId) renderDetailHead()
+    renderHistory()
+  })
 }
 
 export function updateSnacks(list) {
@@ -161,10 +175,71 @@ function renderDetailHead() {
         <button type="button" data-react="${key}" class="${mine === key ? 'active' : ''}">
           ${emoji} ${label} <b>${r[key] || 0}</b>
         </button>`).join('')}
-    </div>`
+    </div>
+    ${isAdmin() ? `<button type="button" id="pop-btn" class="pop-btn">🧨 구매 완료 — 버블 터뜨리기</button>` : ''}`
 
   $('#detail-head').querySelectorAll('[data-react]').forEach(btn => {
     btn.addEventListener('click', () => onReact(btn.dataset.react))
+  })
+  $('#pop-btn')?.addEventListener('click', () => onPop(s))
+}
+
+/* ---------- 관리자: 버블 터뜨리기 ---------- */
+
+async function onPop(s) {
+  if (!isAdmin()) return
+  if (!confirm(`'${s.name}' 버블을 터뜨릴까요?\n구매 완료 처리되어 히스토리에만 남아요.`)) return
+  const id = s.id
+  closeAll()
+  popBubble(id)
+  burstSound()
+  confetti({ particleCount: 80, spread: 90, origin: { y: 0.5 }, scalar: 0.9 })
+  try {
+    await popSnack(s)
+  } catch (err) {
+    console.error(err)
+    alert('삭제에 실패했어요. Firestore 규칙이 최신인지 확인해주세요 (SETUP.md ③)')
+  }
+}
+
+/* ---------- 완판 히스토리 ---------- */
+
+function openHistory() {
+  closeAll()
+  renderHistory()
+  $('#backdrop').classList.add('show')
+  $('#history-sheet').classList.add('open')
+}
+
+function renderHistory() {
+  const box = $('#history-list')
+  if (!box) return
+  if (!history.length) {
+    box.innerHTML = '<p class="c-empty">아직 완판된 간식이 없어요 🫧</p>'
+    return
+  }
+  box.innerHTML = history.map(h => {
+    const safeImage = typeof h.image === 'string' && /^https?:\/\//.test(h.image)
+      ? h.image.replace(/["\\]/g, '') : null
+    return `
+    <div class="h-item">
+      ${safeImage
+        ? `<div class="h-img" style="background-image:url('${safeImage}')"></div>`
+        : `<div class="h-emoji">${esc(h.emoji || '🍿')}</div>`}
+      <div class="h-body">
+        <div class="h-name">${esc(h.name)}</div>
+        <div class="h-time">🎉 ${timeAgo(h.poppedAt)} 완판</div>
+      </div>
+      ${isAdmin() ? `<button type="button" class="h-del" data-del="${esc(h.id)}" title="히스토리 말소">✕</button>` : ''}
+    </div>`
+  }).join('')
+
+  box.querySelectorAll('[data-del]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!isAdmin()) return
+      if (!confirm('이 히스토리를 말소할까요? 되돌릴 수 없어요.')) return
+      try { await deleteHistory(btn.dataset.del) } catch (err) { console.error(err) }
+    })
   })
 }
 
@@ -219,6 +294,7 @@ function closeAll() {
   $('#backdrop').classList.remove('show')
   $('#submit-sheet').classList.remove('open')
   $('#detail-sheet').classList.remove('open')
+  $('#history-sheet').classList.remove('open')
   detailId = null
   if (unsubComments) { unsubComments(); unsubComments = null }
 }
@@ -266,4 +342,10 @@ function popSound() {
 
 function tadaSound() {
   ;[523, 659, 784, 1047].forEach((f, i) => note(f, i * 0.09, 0.35, 'triangle', 0.12))
+}
+
+function burstSound() {
+  note(880, 0, 0.08, 'square', 0.08)
+  note(440, 0.04, 0.15, 'sawtooth', 0.06)
+  note(220, 0.08, 0.25, 'sine', 0.1)
 }

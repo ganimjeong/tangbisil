@@ -45,15 +45,27 @@ service cloud.firestore {
       // 반응 카운트/댓글 수만 수정 가능 (이름·링크 변조 불가)
       allow update: if request.resource.data.diff(resource.data).affectedKeys()
         .hasOnly(['reactions', 'commentCount']);
-      allow delete: if false;
+      // 관리자 버블 터뜨리기용 (관리자 UI는 IP로 제한, 규칙 차원에선 열림)
+      allow delete: if true;
 
       match /comments/{commentId} {
         allow read: if true;
         allow create: if request.resource.data.text is string
           && request.resource.data.text.size() > 0
           && request.resource.data.text.size() <= 300;
-        allow update, delete: if false;
+        allow update: if false;
+        allow delete: if true;
       }
+    }
+
+    // 완판 히스토리 (관리자가 버블을 터뜨리면 여기 기록)
+    match /history/{historyId} {
+      allow read: if true;
+      allow create: if request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 40;
+      allow update: if false;
+      allow delete: if true;
     }
   }
 }
@@ -97,6 +109,17 @@ git push -u origin main
 6. 완료되면 접속 주소: **`https://<내계정>.github.io/tangbisil/`** — 이 링크를 회사에 공유!
 
 이후에는 `main`에 push할 때마다 자동으로 재배포됩니다.
+
+---
+
+## ③ 관리자 기능 (버블 터뜨리기 & 히스토리)
+
+- **관리자 판별**: `src/admin.js`의 `ADMIN_IPS`에 등록된 공인 IP로 접속하면 관리자 모드가 켜져요 (닉네임 칩에 🛡️ 표시).
+- **버블 터뜨리기**: 관리자가 간식 상세를 열면 "🧨 구매 완료 — 버블 터뜨리기" 버튼이 보여요. 누르면 버블이 터지고 **완판 히스토리**(우상단 🏆 아이콘)에 이름/사진만 남아요.
+- **히스토리 말소**: 관리자는 히스토리 항목의 ✕ 버튼으로 기록도 지울 수 있어요.
+- **IP가 바뀌면**: `src/admin.js`에서 IP를 수정/추가하고 다시 배포하면 됩니다. 현재 IP는 https://api.ipify.org 에서 확인.
+
+> ⚠️ 솔직한 참고: Firestore 규칙은 접속자 IP를 검사할 수 없어서, 삭제 권한은 규칙 차원에서는 열려 있고 **화면(UI)에서만 관리자에게 노출**돼요. 개발자 도구를 쓸 줄 아는 사람이 마음먹으면 지울 수 있는 구조라, 사내용 익명 서비스라는 전제에서의 가벼운 잠금장치입니다.
 
 ---
 

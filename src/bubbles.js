@@ -70,6 +70,18 @@ export function updateBubbles(snacks) {
   kick()
 }
 
+// 관리자 버블 터뜨리기 — 스토어 삭제 전에 터지는 연출을 먼저 보여줌
+export function popBubble(id) {
+  const n = nodes.get(id)
+  if (!n) return
+  nodes.delete(id)
+  n.el.style.pointerEvents = 'none'
+  n.el.classList.add('popping')
+  setTimeout(() => n.el.remove(), 500)
+  sim.nodes([...nodes.values()])
+  kick()
+}
+
 function radiusFor(score) {
   const base = Math.min(container.clientWidth, container.clientHeight, 640)
   const min = base * 0.105
