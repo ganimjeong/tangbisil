@@ -447,7 +447,7 @@ header {
 }
 .pop-btn:active { transform: scale(0.97); }
 
-/* ---------- 완판 히스토리 ---------- */
+/* ---------- 구매완료 히스토리 ---------- */
 
 .history-desc {
   font-size: 13px;

@@ -202,7 +202,7 @@ async function onPop(s) {
   }
 }
 
-/* ---------- 완판 히스토리 ---------- */
+/* ---------- 구매완료 히스토리 ---------- */
 
 function openHistory() {
   closeAll()
@@ -215,7 +215,7 @@ function renderHistory() {
   const box = $('#history-list')
   if (!box) return
   if (!history.length) {
-    box.innerHTML = '<p class="c-empty">아직 완판된 간식이 없어요 🫧</p>'
+    box.innerHTML = '<p class="c-empty">아직 구매완료된 간식이 없어요 🫧</p>'
     return
   }
   box.innerHTML = history.map(h => {
@@ -228,7 +228,7 @@ function renderHistory() {
         : `<div class="h-emoji">${esc(h.emoji || '🍿')}</div>`}
       <div class="h-body">
         <div class="h-name">${esc(h.name)}</div>
-        <div class="h-time">🎉 ${timeAgo(h.poppedAt)} 완판</div>
+        <div class="h-time">🎉 ${timeAgo(h.poppedAt)} 구매완료</div>
       </div>
       ${isAdmin() ? `<button type="button" class="h-del" data-del="${esc(h.id)}" title="히스토리 말소">✕</button>` : ''}
     </div>`
