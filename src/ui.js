@@ -42,9 +42,38 @@ export function init() {
   subscribeHistory(list => { history = list; renderHistory() })
   onAdmin(() => {
     $('#identity-chip').textContent = `🛡️ ${me.avatar} ${me.nick}`
-    if (detailId) renderDetailHead()
+    $('#pop-switch').classList.remove('hidden')
+    $('#pop-switch').addEventListener('click', togglePopMode)
     renderHistory()
   })
+}
+
+/* ---------- 관리자: 터뜨리기 모드 ---------- */
+
+let popModeOn = false
+
+function togglePopMode() {
+  popModeOn = !popModeOn
+  $('#pop-switch').classList.toggle('on', popModeOn)
+  document.body.classList.toggle('pop-mode', popModeOn)
+  popSound()
+}
+
+// 버블 탭 진입점 — 터뜨리기 모드면 즉시 터뜨리고, 아니면 상세 열기
+export function onBubbleTap(id) {
+  if (popModeOn && isAdmin()) {
+    const s = snacks.get(id)
+    if (!s) return
+    popBubble(id)
+    burstSound()
+    confetti({ particleCount: 80, spread: 90, origin: { y: 0.5 }, scalar: 0.9 })
+    popSnack(s).catch(err => {
+      console.error(err)
+      alert('삭제에 실패했어요. Firestore 규칙이 최신인지 확인해주세요 (SETUP.md ③)')
+    })
+    return
+  }
+  openDetail(id)
 }
 
 export function updateSnacks(list) {
@@ -175,32 +204,11 @@ function renderDetailHead() {
         <button type="button" data-react="${key}" class="${mine === key ? 'active' : ''}">
           ${emoji} ${label} <b>${r[key] || 0}</b>
         </button>`).join('')}
-    </div>
-    ${isAdmin() ? `<button type="button" id="pop-btn" class="pop-btn">🧨 구매 완료 — 버블 터뜨리기</button>` : ''}`
+    </div>`
 
   $('#detail-head').querySelectorAll('[data-react]').forEach(btn => {
     btn.addEventListener('click', () => onReact(btn.dataset.react))
   })
-  $('#pop-btn')?.addEventListener('click', () => onPop(s))
-}
-
-/* ---------- 관리자: 버블 터뜨리기 ---------- */
-
-async function onPop(s) {
-  if (!isAdmin()) return
-  if (!confirm(`'${s.name}' 버블을 터뜨릴까요?\n구매 완료 처리되어 히스토리에만 남아요.`)) return
-  if (!confirm(`⚠️ 정말 터뜨릴까요? 복구할 수 없어요!\n'${s.name}'의 건의 내용과 댓글이 모두 삭제됩니다.`)) return
-  const id = s.id
-  closeAll()
-  popBubble(id)
-  burstSound()
-  confetti({ particleCount: 80, spread: 90, origin: { y: 0.5 }, scalar: 0.9 })
-  try {
-    await popSnack(s)
-  } catch (err) {
-    console.error(err)
-    alert('삭제에 실패했어요. Firestore 규칙이 최신인지 확인해주세요 (SETUP.md ③)')
-  }
 }
 
 /* ---------- 구매완료 히스토리 ---------- */

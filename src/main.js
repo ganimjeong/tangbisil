@@ -6,7 +6,7 @@ import * as ui from './ui.js'
 const field = document.getElementById('bubble-field')
 
 ui.init()
-initBubbles(field, id => ui.openDetail(id))
+initBubbles(field, id => ui.onBubbleTap(id))
 
 subscribeSnacks(list => {
   updateBubbles(list)
