@@ -189,6 +189,7 @@ function renderDetailHead() {
 async function onPop(s) {
   if (!isAdmin()) return
   if (!confirm(`'${s.name}' 버블을 터뜨릴까요?\n구매 완료 처리되어 히스토리에만 남아요.`)) return
+  if (!confirm(`⚠️ 정말 터뜨릴까요? 복구할 수 없어요!\n'${s.name}'의 건의 내용과 댓글이 모두 삭제됩니다.`)) return
   const id = s.id
   closeAll()
   popBubble(id)
