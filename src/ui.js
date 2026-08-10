@@ -4,7 +4,7 @@ import {
   popSnack, subscribeHistory, deleteHistory,
 } from './store.js'
 import { getIdentity } from './nickname.js'
-import { scoreOf, popBubble } from './bubbles.js'
+import { scoreOf, popBubble, isNew } from './bubbles.js'
 import { isAdmin, onAdmin } from './admin.js'
 
 const $ = sel => document.querySelector(sel)
@@ -193,8 +193,8 @@ function renderDetailHead() {
         ? `<div class="d-img" style="background-image:url('${safeImage}')"></div>`
         : `<div class="d-emoji">${esc(s.emoji || '🍿')}</div>`}
       <div class="d-title">
-        <h3>${esc(s.name)}</h3>
-        <div class="d-author">건의 : ${esc(s.author?.avatar || '')} ${esc(s.author?.nick || '익명')}</div>
+        <h3>${esc(s.name)}${isNew(s.createdAt) ? '<span class="new-chip">NEW</span>' : ''}</h3>
+        <div class="d-author">건의 : ${esc(s.author?.avatar || '')} ${esc(s.author?.nick || '익명')} · ${timeAgo(s.createdAt)}</div>
       </div>
     </div>
     ${s.reason ? `<p class="d-reason">“${esc(s.reason)}”</p>` : ''}

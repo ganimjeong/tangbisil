@@ -3,11 +3,20 @@ import { forceSimulation, forceCollide, forceManyBody, forceX, forceY } from 'd3
 let sim = null
 let container = null
 let onTap = null
+let lastSnacks = []
 const nodes = new Map() // id -> { id, x, y, r, score, el }
 
 export function scoreOf(s) {
   const r = s.reactions || {}
   return (s.commentCount || 0) + (r.want || 0) + (r.buy || 0) + (r.no || 0)
+}
+
+// 건의된 지 24시간 안 지났으면 NEW
+// (serverTimestamp가 아직 안 찍힌 방금 올린 건의는 createdAt이 비어 있어서 NEW로 취급)
+export function isNew(createdAt) {
+  if (!createdAt) return true
+  const ms = typeof createdAt?.toMillis === 'function' ? createdAt.toMillis() : createdAt
+  return Date.now() - ms < 86400000
 }
 
 export function initBubbles(el, tapHandler) {
@@ -26,9 +35,17 @@ export function initBubbles(el, tapHandler) {
     sim.nodes([...nodes.values()]) // 중심 좌표 타깃 재계산
     kick()
   })
+  // 새 스냅샷이 안 와도 24시간이 지나면 NEW가 저절로 떨어지도록
+  setInterval(() => {
+    for (const s of lastSnacks) {
+      const n = nodes.get(s.id)
+      if (n) n.el.classList.toggle('is-new', isNew(s.createdAt))
+    }
+  }, 60000)
 }
 
 export function updateBubbles(snacks) {
+  lastSnacks = snacks
   const seen = new Set()
   let kingId = null, kingScore = 0
   for (const s of snacks) {
@@ -94,6 +111,7 @@ function makeEl(id) {
   el.className = 'bubble enter'
   el.innerHTML = `
     <div class="b-crown">👑</div>
+    <div class="b-new">NEW</div>
     <div class="b-img"></div>
     <div class="b-emoji"></div>
     <div class="b-name"></div>
@@ -105,6 +123,7 @@ function makeEl(id) {
 
 function updateEl(el, s, isKing) {
   el.classList.toggle('king', isKing)
+  el.classList.toggle('is-new', isNew(s.createdAt))
   const img = el.querySelector('.b-img')
   const emoji = el.querySelector('.b-emoji')
   const safeImage = typeof s.image === 'string' && /^https?:\/\//.test(s.image)
