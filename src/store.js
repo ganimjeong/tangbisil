@@ -18,6 +18,7 @@ export const react = store.react
 export const popSnack = store.popSnack
 export const subscribeHistory = store.subscribeHistory
 export const deleteHistory = store.deleteHistory
+export const setHistoryReason = store.setHistoryReason
 
 /* ---------- Firestore ---------- */
 
@@ -77,6 +78,10 @@ function firestoreStore() {
     },
     async deleteHistory(id) {
       await deleteDoc(doc(db, 'history', id))
+    },
+    // 반려 사유 설정 (null 이면 다시 구매완료로)
+    async setHistoryReason(id, reason) {
+      await updateDoc(doc(db, 'history', id), { rejectReason: reason || null })
     },
   }
 }
@@ -161,6 +166,12 @@ function mockStore() {
     },
     async deleteHistory(id) {
       data.history = data.history.filter(h => h.id !== id)
+      save(); emitHistory()
+    },
+    async setHistoryReason(id, reason) {
+      const h = data.history.find(x => x.id === id)
+      if (!h) return
+      h.rejectReason = reason || null
       save(); emitHistory()
     },
   }

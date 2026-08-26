@@ -64,7 +64,11 @@ service cloud.firestore {
       allow create: if request.resource.data.name is string
         && request.resource.data.name.size() > 0
         && request.resource.data.name.size() <= 40;
-      allow update: if false;
+      // 반려 사유만 수정 가능 (60자 이내, 지울 땐 null)
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rejectReason'])
+        && (request.resource.data.rejectReason == null
+          || (request.resource.data.rejectReason is string
+            && request.resource.data.rejectReason.size() <= 60));
       allow delete: if true;
     }
   }

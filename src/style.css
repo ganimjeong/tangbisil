@@ -568,6 +568,47 @@ body.pop-mode .bubble.king {
 }
 .h-del:active { background: #ffdada; color: #d43d17; }
 
+.h-why {
+  border: none;
+  background: transparent;
+  color: #d8c7b8;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.h-why:active { background: #f5ede6; color: var(--ink-soft); }
+
+/* 반려된 간식 — 눈에 덜 띄게 */
+.h-item.rejected { opacity: 0.62; }
+.h-item.rejected .h-emoji,
+.h-item.rejected .h-img { filter: grayscale(0.8); }
+.h-item.rejected .h-name { font-weight: 600; }
+
+/* 반려 사유 고르기 메뉴 */
+.h-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: -2px 0 10px 56px;
+}
+.h-menu button {
+  border: 1px solid #f0e4d8;
+  background: #fffaf4;
+  color: var(--ink);
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+}
+.h-menu button:active { background: #f7ece1; }
+.h-menu button.clear { color: var(--ink-soft); }
+
 /* ---------- 댓글 ---------- */
 
 #comment-list {

@@ -1,7 +1,7 @@
 import confetti from 'canvas-confetti'
 import {
   addSnack, addComment, react, subscribeComments,
-  popSnack, subscribeHistory, deleteHistory,
+  popSnack, subscribeHistory, deleteHistory, setHistoryReason,
 } from './store.js'
 import { getIdentity } from './nickname.js'
 import { scoreOf, popBubble, isNew } from './bubbles.js'
@@ -12,6 +12,13 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
 
 const EMOJIS = ['🍫', '🍪', '🥤', '🍜', '🍬', '🍭', '🍩', '🍙', '🧀', '🥨', '🍿', '🍦', '☕', '🧃', '🍎', '🥜']
+// 관리자가 히스토리에서 고를 수 있는 반려 사유
+const REJECT_REASONS = [
+  '인당 비용이 700원을 넘어요',
+  '나누어 먹기 어려운 품목이에요',
+  '이전에 반려된 적 있는 품목이에요',
+]
+
 const REACTIONS = [
   ['want', '🤤', '먹고싶다'],
   ['buy', '🙏', '사주세요'],
@@ -213,8 +220,11 @@ function renderDetailHead() {
 
 /* ---------- 구매완료 히스토리 ---------- */
 
+let reasonMenuFor = null // 반려 사유 메뉴가 열려 있는 히스토리 id
+
 function openHistory() {
   closeAll()
+  reasonMenuFor = null
   renderHistory()
   $('#backdrop').classList.add('show')
   $('#history-sheet').classList.add('open')
@@ -230,17 +240,23 @@ function renderHistory() {
   box.innerHTML = history.map(h => {
     const safeImage = typeof h.image === 'string' && /^https?:\/\//.test(h.image)
       ? h.image.replace(/["\\]/g, '') : null
+    const rejected = typeof h.rejectReason === 'string' && h.rejectReason.trim()
     return `
-    <div class="h-item">
+    <div class="h-item${rejected ? ' rejected' : ''}">
       ${safeImage
         ? `<div class="h-img" style="background-image:url('${safeImage}')"></div>`
         : `<div class="h-emoji">${esc(h.emoji || '🍿')}</div>`}
       <div class="h-body">
         <div class="h-name">${esc(h.name)}</div>
-        <div class="h-time">🎉 ${timeAgo(h.poppedAt)} 구매완료</div>
+        <div class="h-time">${rejected
+          ? `${timeAgo(h.poppedAt)} · ${esc(h.rejectReason)}`
+          : `🎉 ${timeAgo(h.poppedAt)} 구매완료`}</div>
       </div>
-      ${isAdmin() ? `<button type="button" class="h-del" data-del="${esc(h.id)}" title="히스토리 말소">✕</button>` : ''}
-    </div>`
+      ${isAdmin() ? `
+        <button type="button" class="h-why" data-why="${esc(h.id)}" title="반려 사유 설정">⋯</button>
+        <button type="button" class="h-del" data-del="${esc(h.id)}" title="히스토리 말소">✕</button>` : ''}
+    </div>
+    ${isAdmin() && reasonMenuFor === h.id ? reasonMenu(h) : ''}`
   }).join('')
 
   box.querySelectorAll('[data-del]').forEach(btn => {
@@ -250,6 +266,54 @@ function renderHistory() {
       try { await deleteHistory(btn.dataset.del) } catch (err) { console.error(err) }
     })
   })
+
+  box.querySelectorAll('[data-why]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (!isAdmin()) return
+      reasonMenuFor = reasonMenuFor === btn.dataset.why ? null : btn.dataset.why
+      renderHistory()
+    })
+  })
+
+  box.querySelectorAll('[data-pick]').forEach(btn => {
+    btn.addEventListener('click', () => onPickReason(btn.dataset.pick, btn.dataset.idx))
+  })
+}
+
+// 반려 사유 고르기 메뉴 (관리자 전용)
+function reasonMenu(h) {
+  const id = esc(h.id)
+  return `
+    <div class="h-menu">
+      ${REJECT_REASONS.map((r, i) => `
+        <button type="button" data-pick="${id}" data-idx="${i}">${esc(r)}</button>`).join('')}
+      <button type="button" data-pick="${id}" data-idx="custom">✏️ 직접 작성</button>
+      ${h.rejectReason ? `
+        <button type="button" class="clear" data-pick="${id}" data-idx="clear">사유 지우고 구매완료로</button>` : ''}
+    </div>`
+}
+
+async function onPickReason(id, idx) {
+  if (!isAdmin()) return
+  let reason
+  if (idx === 'clear') {
+    reason = null
+  } else if (idx === 'custom') {
+    const cur = history.find(h => h.id === id)?.rejectReason || ''
+    const input = prompt('반려 사유를 적어주세요 (60자 이내)', cur)
+    if (input === null) return
+    reason = input.trim().slice(0, 60)
+    if (!reason) return
+  } else {
+    reason = REJECT_REASONS[Number(idx)]
+    if (!reason) return
+  }
+  reasonMenuFor = null
+  renderHistory()
+  try { await setHistoryReason(id, reason) } catch (err) {
+    console.error(err)
+    alert('반려 사유 저장에 실패했어요. Firestore 규칙이 최신인지 확인해주세요 (SETUP.md ③)')
+  }
 }
 
 function onReact(type) {
@@ -304,6 +368,7 @@ function closeAll() {
   $('#submit-sheet').classList.remove('open')
   $('#detail-sheet').classList.remove('open')
   $('#history-sheet').classList.remove('open')
+  reasonMenuFor = null
   detailId = null
   if (unsubComments) { unsubComments(); unsubComments = null }
 }
