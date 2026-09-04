@@ -28,6 +28,49 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* ---------- 상단 흘러가는 공지 ---------- */
+
+/* 읽히되 치고 들어오지는 않게 — 배경 위에 얹힌 자막 정도의 존재감 */
+.ticker {
+  flex-shrink: 0;
+  overflow: hidden;
+  padding: 0 0 6px;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+}
+
+.ticker-track {
+  display: inline-flex;
+  width: max-content;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  opacity: 0.5;
+  animation-name: ticker-roll;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+.ticker-track span { padding-right: 5em; }
+
+/* 사람들이 올린 한마디 — 고정 공지보다 한 겹 더 뒤, 거의 배경 무늬 정도로 */
+.ticker.faint { padding-bottom: 8px; }
+.ticker.faint .ticker-track {
+  font-size: 11px;
+  font-weight: 500;
+  opacity: 0.28;
+}
+
+@keyframes ticker-roll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+/* 움직임을 줄여달라고 한 기기에서는 흐르지 않고 그대로 둔다 */
+@media (prefers-reduced-motion: reduce) {
+  .ticker-track { animation: none; }
+}
+
 /* ---------- 헤더 ---------- */
 
 header {
@@ -740,6 +783,52 @@ body.pop-mode .bubble.king {
   background: #fffdfa;
 }
 #c-input:focus { border-color: var(--accent); }
+
+/* ---------- 흘러가는 한마디 시트 ---------- */
+
+#notice-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-bottom: 12px;
+}
+
+#n-input {
+  flex: 1;
+  min-width: 0;
+  border: 1.5px solid #eaddd2;
+  border-radius: 999px;
+  padding: 11px 15px;
+  font-size: 15px;
+  font-family: inherit;
+  color: var(--ink);
+  outline: none;
+  background: #fffdfa;
+}
+#n-input:focus { border-color: var(--accent); }
+
+#notice-list {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.n-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: #fffdfa;
+  border: 1.5px solid #f0e4d9;
+}
+
+.n-ava { font-size: 18px; flex-shrink: 0; }
+.n-body { flex: 1; min-width: 0; }
+.n-text { font-size: 14px; font-weight: 600; word-break: break-word; }
+.n-time { font-size: 11px; color: var(--ink-soft); margin-top: 2px; }
 
 /* ---------- 데스크톱 보정 ---------- */
 

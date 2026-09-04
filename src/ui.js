@@ -2,6 +2,7 @@ import confetti from 'canvas-confetti'
 import {
   addSnack, addComment, react, subscribeComments,
   popSnack, subscribeHistory, deleteHistory, setHistoryReason,
+  subscribeNotices, addNotice, deleteNotice,
 } from './store.js'
 import { getIdentity } from './nickname.js'
 import { scoreOf, popBubble, isNew } from './bubbles.js'
@@ -22,6 +23,10 @@ const REJECT_REASONS = [
   '이전에 반려된 적 있는 품목이에요',
 ]
 
+// 위쪽 고정 공지 — 바꾸려면 이 줄만 고치면 된다. 빈 문자열이면 그 줄이 안 보인다.
+// (아래 연한 줄은 사람들이 📢로 직접 올린다)
+const NOTICE = '9월입니다 여러분!! 풍성한 9월 여러분의 간식에 댓글을 달아주세요 -간식101-'
+
 const REACTIONS = [
   ['want', '🤤', '먹고싶다'],
   ['buy', '🙏', '사주세요'],
@@ -31,6 +36,7 @@ const REACTIONS = [
 const me = getIdentity()
 let snacks = new Map()
 let history = []
+let notices = []
 let detailId = null
 let unsubComments = null
 let selectedEmoji = EMOJIS[0]
@@ -42,21 +48,99 @@ export function init() {
 
   buildEmojiPicker()
   setupImagePicker()
+  setupTicker()
   $('#fab').addEventListener('click', openSubmit)
   $('#backdrop').addEventListener('click', closeAll)
   $('#submit-close').addEventListener('click', closeAll)
   $('#detail-close').addEventListener('click', closeAll)
   $('#history-close').addEventListener('click', closeAll)
   $('#history-btn').addEventListener('click', openHistory)
+  $('#notice-btn').addEventListener('click', openNotice)
+  $('#notice-close').addEventListener('click', closeAll)
+  $('#notice-form').addEventListener('submit', onSubmitNotice)
   $('#submit-form').addEventListener('submit', onSubmitSnack)
   $('#comment-form').addEventListener('submit', onSubmitComment)
 
   subscribeHistory(list => { history = list; renderHistory() })
+  subscribeNotices(list => { notices = list; renderUserTicker(); renderNoticeList() })
   onAdmin(() => {
     $('#identity-chip').textContent = `🛡️ ${me.avatar} ${me.nick}`
     $('#pop-switch').classList.remove('hidden')
     $('#pop-switch').addEventListener('click', togglePopMode)
     renderHistory()
+    renderNoticeList()
+  })
+}
+
+/* ---------- 상단 공지 ---------- */
+
+function setupTicker() {
+  fillTicker($('#ticker'), $('#ticker-track'), NOTICE.trim(), 0.55)
+}
+
+// 사람들이 올린 한마디 — 고정 공지보다 느리게 흘려 배경처럼 두었다
+function renderUserTicker() {
+  // 최근 것 위주로만 — 다 이으면 한 바퀴가 하염없이 길어진다
+  const text = notices.slice(0, 12).map(n => n.text?.trim()).filter(Boolean).join('   ·   ')
+  fillTicker($('#ticker-user'), $('#ticker-user-track'), text, 0.7)
+}
+
+function fillTicker(box, track, text, secPerChar) {
+  if (!text) { box.classList.add('hidden'); return }
+  // 같은 문구를 두 번 이어 붙여야 -50%로 굴릴 때 끊김 없이 이어진다
+  track.innerHTML = `<span>${esc(text)}</span><span>${esc(text)}</span>`
+  // 문구가 늘어도 흐르는 빠르기는 비슷하게
+  track.style.animationDuration = `${Math.max(18, text.length * secPerChar).toFixed(1)}s`
+  box.classList.remove('hidden')
+}
+
+/* ---------- 한마디 시트 ---------- */
+
+function openNotice() {
+  closeAll()
+  renderNoticeList()
+  $('#backdrop').classList.add('show')
+  $('#notice-sheet').classList.add('open')
+  setTimeout(() => $('#n-input').focus(), 300)
+}
+
+async function onSubmitNotice(e) {
+  e.preventDefault()
+  const input = $('#n-input')
+  const text = input.value.trim()
+  if (!text) return
+  input.value = ''
+  popSound()
+  try {
+    await addNotice({ text, author: { nick: me.nick, avatar: me.avatar } })
+  } catch (err) {
+    console.error(err)
+    alert('한마디를 띄우지 못했어요. Firestore 규칙이 최신인지 확인해주세요 (SETUP.md ③)')
+  }
+}
+
+function renderNoticeList() {
+  const box = $('#notice-list')
+  if (!box) return
+  if (!notices.length) {
+    box.innerHTML = '<p class="c-empty">아직 흘러가는 한마디가 없어요. 첫 문장을 띄워보세요 ✨</p>'
+    return
+  }
+  box.innerHTML = notices.map(n => `
+    <div class="n-item">
+      <span class="n-ava">${esc(n.author?.avatar || '🐾')}</span>
+      <div class="n-body">
+        <div class="n-text">${esc(n.text)}</div>
+        <div class="n-time">${esc(n.author?.nick || '익명')} · ${timeAgo(n.createdAt)}</div>
+      </div>
+      ${isAdmin() ? `<button type="button" class="h-del" data-ndel="${esc(n.id)}" title="내리기">✕</button>` : ''}
+    </div>`).join('')
+
+  box.querySelectorAll('[data-ndel]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!isAdmin()) return
+      try { await deleteNotice(btn.dataset.ndel) } catch (err) { console.error(err) }
+    })
   })
 }
 
@@ -503,6 +587,7 @@ function closeAll() {
   $('#submit-sheet').classList.remove('open')
   $('#detail-sheet').classList.remove('open')
   $('#history-sheet').classList.remove('open')
+  $('#notice-sheet').classList.remove('open')
   reasonMenuFor = null
   detailId = null
   if (unsubComments) { unsubComments(); unsubComments = null }

@@ -71,11 +71,23 @@ service cloud.firestore {
             && request.resource.data.rejectReason.size() <= 60));
       allow delete: if true;
     }
+
+    // 상단에 흘러가는 한마디 (누구나 띄우고, 관리자가 내림)
+    match /notices/{noticeId} {
+      allow read: if true;
+      allow create: if request.resource.data.text is string
+        && request.resource.data.text.size() > 0
+        && request.resource.data.text.size() <= 60;
+      allow update: if false;
+      allow delete: if true;
+    }
   }
 }
 ```
 
 3. 상단 **"게시(Publish)"** 버튼 클릭
+
+> 이미 규칙을 붙여넣어 두셨더라도, `notices` 블록이 없으면 상단 한마디가 저장되지 않아요. 위 내용으로 다시 붙여넣고 게시해주세요.
 
 > 링크를 아는 사람 누구나 읽고 쓸 수 있는 규칙이에요 (익명 서비스니까 의도된 것).
 > 대신 글 삭제/변조는 막혀 있고, 글자 수 제한이 걸려 있어요.
@@ -146,6 +158,11 @@ git push -u origin main
 
 **Q. 쿠팡 상품 이미지가 자동으로 안 나와요**
 쿠팡이 외부 크롤링을 차단해서 자동 수집은 불가능해요. 상품 사진을 **길게 눌러(우클릭) → "이미지 주소 복사"** 후 붙여넣거나, 스크린샷을 그대로 업로드하면 버블에 표시됩니다.
+
+**Q. 상단에 흘러가는 문구는 어떻게 바꾸나요?**
+두 줄이 따로 놉니다.
+- **위 줄(고정 공지)** : `src/ui.js` 맨 위 `NOTICE` 한 줄을 고치면 됩니다. 빈 문자열로 두면 그 줄이 사라져요.
+- **아래 연한 줄** : 우상단 📢 아이콘으로 누구나 띄웁니다 (60자). 최근 12개까지 이어서 흐르고, 관리자에게는 목록에 ✕가 보여 내릴 수 있어요.
 
 **Q. 무료인가요?**
 네. Firestore 무료 한도(일 읽기 5만 / 쓰기 2만)는 회사 규모에서 넉넉하고, GitHub Pages도 무료입니다.

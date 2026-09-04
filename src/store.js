@@ -19,6 +19,9 @@ export const popSnack = store.popSnack
 export const subscribeHistory = store.subscribeHistory
 export const deleteHistory = store.deleteHistory
 export const setHistoryReason = store.setHistoryReason
+export const subscribeNotices = store.subscribeNotices
+export const addNotice = store.addNotice
+export const deleteNotice = store.deleteNotice
 
 /* ---------- Firestore ---------- */
 
@@ -83,6 +86,21 @@ function firestoreStore() {
     async setHistoryReason(id, reason) {
       await updateDoc(doc(db, 'history', id), { rejectReason: reason || null })
     },
+    // 상단에 흘러가는 한마디
+    subscribeNotices(cb) {
+      return onSnapshot(collection(db, 'notices'), snap => {
+        const list = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        // serverTimestamp가 아직 안 찍힌 로컬 문서는 맨 앞으로
+        list.sort((a, b) => (b.createdAt?.toMillis?.() ?? Infinity) - (a.createdAt?.toMillis?.() ?? Infinity))
+        cb(list)
+      })
+    },
+    async addNotice(fields) {
+      await addDoc(collection(db, 'notices'), { ...fields, createdAt: serverTimestamp() })
+    },
+    async deleteNotice(id) {
+      await deleteDoc(doc(db, 'notices', id))
+    },
   }
 }
 
@@ -94,11 +112,13 @@ function mockStore() {
   try { data = JSON.parse(localStorage.getItem(KEY)) } catch { /* 새로 시드 */ }
   if (!data?.snacks) data = seed()
   if (!Array.isArray(data.history)) data.history = []
+  if (!Array.isArray(data.notices)) data.notices = []
   const save = () => localStorage.setItem(KEY, JSON.stringify(data))
   save()
 
   const snackSubs = new Set()
   const historySubs = new Set()
+  const noticeSubs = new Set()
   const commentSubs = new Map() // snackId -> Set<cb>
   const uid = () => 'm' + Math.random().toString(36).slice(2, 10)
 
@@ -111,6 +131,10 @@ function mockStore() {
   const emitHistory = () => {
     const l = [...data.history].sort((a, b) => (b.poppedAt || 0) - (a.poppedAt || 0))
     historySubs.forEach(cb => cb(l))
+  }
+  const emitNotices = () => {
+    const l = [...data.notices].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+    noticeSubs.forEach(cb => cb(l))
   }
   const emitComments = id => {
     const s = data.snacks.find(x => x.id === id)
@@ -167,6 +191,19 @@ function mockStore() {
     async deleteHistory(id) {
       data.history = data.history.filter(h => h.id !== id)
       save(); emitHistory()
+    },
+    subscribeNotices(cb) {
+      noticeSubs.add(cb)
+      cb([...data.notices].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)))
+      return () => noticeSubs.delete(cb)
+    },
+    async addNotice(fields) {
+      data.notices.push({ id: uid(), ...fields, createdAt: Date.now() })
+      save(); emitNotices()
+    },
+    async deleteNotice(id) {
+      data.notices = data.notices.filter(n => n.id !== id)
+      save(); emitNotices()
     },
     async setHistoryReason(id, reason) {
       const h = data.history.find(x => x.id === id)
