@@ -53,13 +53,6 @@ body {
 }
 .ticker-track span { padding-right: 5em; }
 
-/* 사람들이 올린 한마디 — 고정 공지보다 한 겹 더 뒤, 거의 배경 무늬 정도로 */
-.ticker.faint { padding-bottom: 8px; }
-.ticker.faint .ticker-track {
-  font-size: 11px;
-  font-weight: 500;
-  opacity: 0.28;
-}
 
 @keyframes ticker-roll {
   from { transform: translateX(0); }
@@ -151,6 +144,37 @@ header {
   overflow: hidden;
 }
 
+/* 사람들이 올린 한마디 — 버블 뒤에서 제각각 흘러가는 배경 텍스트 */
+.notice-bg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.notice-bg .drift {
+  position: absolute;
+  left: 0;
+  white-space: nowrap;
+  font-weight: 700;
+  color: var(--ink);
+  will-change: transform;
+  animation-name: drift-across;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+@keyframes drift-across {
+  from { transform: translateX(100vw); }
+  to { transform: translateX(-100%); }
+}
+
+/* 움직임을 줄여달라고 한 기기에서는 흐르지 않고 흩어진 채로 머문다 */
+@media (prefers-reduced-motion: reduce) {
+  .notice-bg .drift { animation: none; transform: translateX(8vw); }
+}
+
 #empty-state {
   position: absolute;
   inset: 0;
@@ -182,6 +206,7 @@ header {
   user-select: none;
   -webkit-user-select: none;
   will-change: transform;
+  z-index: 1;
   transition: width 0.5s cubic-bezier(0.34, 1.4, 0.64, 1), height 0.5s cubic-bezier(0.34, 1.4, 0.64, 1);
 }
 

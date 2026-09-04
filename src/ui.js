@@ -62,12 +62,12 @@ export function init() {
   $('#comment-form').addEventListener('submit', onSubmitComment)
 
   subscribeHistory(list => { history = list; renderHistory() })
-  subscribeNotices(list => { notices = list; renderUserTicker(); renderNoticeList() })
+  subscribeNotices(list => { notices = list; renderNoticeBg(); renderNoticeList() })
 
   let resizeTimer = null
   window.addEventListener('resize', () => {
     clearTimeout(resizeTimer)
-    resizeTimer = setTimeout(() => { setupTicker(); renderUserTicker() }, 200)
+    resizeTimer = setTimeout(setupTicker, 200)
   })
   onAdmin(() => {
     $('#identity-chip').textContent = `🛡️ ${me.avatar} ${me.nick}`
@@ -84,11 +84,39 @@ function setupTicker() {
   fillTicker($('#ticker'), $('#ticker-track'), NOTICE.trim(), 0.55)
 }
 
-// 사람들이 올린 한마디 — 고정 공지보다 느리게 흘려 배경처럼 두었다
-function renderUserTicker() {
-  // 최근 것 위주로만 — 다 이으면 한 바퀴가 하염없이 길어진다
-  const text = notices.slice(0, 12).map(n => n.text?.trim()).filter(Boolean).join('   ·   ')
-  fillTicker($('#ticker-user'), $('#ticker-user-track'), text, 0.7)
+// 사람들이 올린 한마디 — 버블 뒤에서 제각각 흘러가는 배경 텍스트로 깐다
+function renderNoticeBg() {
+  const box = $('#notice-bg')
+  box.innerHTML = ''
+  // 최근 것 위주로만 — 다 띄우면 배경이 글자로 뒤덮인다
+  const items = notices.slice(0, 12).filter(n => n.text?.trim())
+
+  items.forEach((n, i) => {
+    const el = document.createElement('span')
+    el.className = 'drift'
+    el.textContent = n.text.trim()
+    // 세로로는 줄을 나눠 쓰되 그 안에서 흐트러뜨려 중구난방으로 보이게
+    const lane = (i + 0.5) / items.length
+    const jitter = (rand(n.id, 'lane') - 0.5) * (0.9 / items.length)
+    el.style.top = `${(Math.min(0.94, Math.max(0.02, lane + jitter)) * 100).toFixed(1)}%`
+    // 속도·시작 시점·크기·진하기를 다 달리해 서로 안 겹치고 지나가게
+    el.style.animationDuration = `${(40 + rand(n.id, 'dur') * 38).toFixed(1)}s`
+    el.style.animationDelay = `-${(rand(n.id, 'delay') * 60).toFixed(1)}s`
+    el.style.fontSize = `${(12 + rand(n.id, 'size') * 6).toFixed(1)}px`
+    el.style.opacity = (0.13 + rand(n.id, 'op') * 0.1).toFixed(2)
+    box.appendChild(el)
+  })
+}
+
+// 글자마다 고정된 난수 — id에서 뽑아야 새 한마디가 올라와도 기존 배치가 안 흔들린다
+function rand(seed, salt) {
+  let h = 2166136261
+  const str = `${seed}|${salt}`
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i)
+    h = Math.imul(h, 16777619)
+  }
+  return ((h >>> 0) % 10000) / 10000
 }
 
 function fillTicker(box, track, text, secPerChar) {
