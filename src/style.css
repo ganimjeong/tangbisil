@@ -6,6 +6,10 @@
   --ink: #4a2f22;
   --ink-soft: #a08574;
   --gold: #ffb800;
+  /* 배경 — 기분 따라 이 두 줄만 바꾸면 전체 톤이 바뀐다.
+     예전 크림톤: linear-gradient(160deg, #fff8ef 0%, #ffe9d6 60%, #ffdfc4 100%) / rgba(180, 110, 60, 0.15) */
+  --bg: linear-gradient(160deg, #f6fdfc 0%, #e2f3f5 58%, #cfe9f3 100%);
+  --bg-shadow: rgba(60, 120, 150, 0.16);
 }
 
 html, body {
@@ -15,7 +19,7 @@ html, body {
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Pretendard', 'Noto Sans KR', sans-serif;
-  background: linear-gradient(160deg, #fff8ef 0%, #ffe9d6 60%, #ffdfc4 100%);
+  background: var(--bg);
   color: var(--ink);
   display: flex;
   flex-direction: column;
@@ -47,7 +51,7 @@ header {
   font-size: 12px;
   font-weight: 600;
   color: var(--ink-soft);
-  box-shadow: 0 2px 8px rgba(180, 110, 60, 0.15);
+  box-shadow: 0 2px 8px var(--bg-shadow);
 }
 
 .header-right {
@@ -64,7 +68,7 @@ header {
   border-radius: 50%;
   font-size: 17px;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(180, 110, 60, 0.15);
+  box-shadow: 0 2px 8px var(--bg-shadow);
   transition: transform 0.15s;
 }
 .icon-btn:active { transform: scale(0.9); }
@@ -262,7 +266,7 @@ header {
 .backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(60, 30, 10, 0.35);
+  background: rgba(20, 45, 60, 0.35);
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.25s;
