@@ -329,6 +329,19 @@ header {
 
 .opt { color: var(--ink-soft); font-weight: 500; }
 
+/* 건의 전에 한 번 읽고 가라는 반려 안내 */
+.form-note {
+  background: #fff4e8;
+  border: 1.5px solid #ffd9b8;
+  border-radius: 12px;
+  padding: 10px 13px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+.form-note b { display: block; color: var(--ink); font-size: 13px; }
+.form-note ul { margin-top: 4px; padding-left: 16px; }
+
 #submit-form input,
 #submit-form textarea {
   border: 1.5px solid #eaddd2;
