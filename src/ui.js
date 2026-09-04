@@ -63,6 +63,12 @@ export function init() {
 
   subscribeHistory(list => { history = list; renderHistory() })
   subscribeNotices(list => { notices = list; renderUserTicker(); renderNoticeList() })
+
+  let resizeTimer = null
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer)
+    resizeTimer = setTimeout(() => { setupTicker(); renderUserTicker() }, 200)
+  })
   onAdmin(() => {
     $('#identity-chip').textContent = `🛡️ ${me.avatar} ${me.nick}`
     $('#pop-switch').classList.remove('hidden')
@@ -87,11 +93,21 @@ function renderUserTicker() {
 
 function fillTicker(box, track, text, secPerChar) {
   if (!text) { box.classList.add('hidden'); return }
-  // 같은 문구를 두 번 이어 붙여야 -50%로 굴릴 때 끊김 없이 이어진다
-  track.innerHTML = `<span>${esc(text)}</span><span>${esc(text)}</span>`
-  // 문구가 늘어도 흐르는 빠르기는 비슷하게
-  track.style.animationDuration = `${Math.max(18, text.length * secPerChar).toFixed(1)}s`
-  box.classList.remove('hidden')
+  box.classList.remove('hidden') // 숨겨진 상태로는 너비를 잴 수 없다
+
+  const one = `<span>${esc(text)}</span>`
+  track.innerHTML = one
+  // 한 벌 너비를 재서 화면을 채울 만큼 반복한다.
+  // 두 벌만 이으면 넓은 화면에서 오른쪽이 텅 비어 왼쪽에만 글자가 흐른다.
+  const unit = track.scrollWidth || 1
+  const need = Math.ceil((box.clientWidth * 2) / unit)
+  // -50%로 굴리려면 앞뒤 절반이 같아야 하므로 짝수로 맞춘다
+  const copies = Math.max(2, need % 2 ? need + 1 : need)
+  track.innerHTML = one.repeat(copies)
+
+  // 반복이 늘면 한 바퀴 이동 거리도 늘어나니 시간도 같이 늘려 속도를 유지한다
+  const seconds = Math.max(18, text.length * secPerChar) * (copies / 2)
+  track.style.animationDuration = `${seconds.toFixed(1)}s`
 }
 
 /* ---------- 한마디 시트 ---------- */
