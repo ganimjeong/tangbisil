@@ -6,6 +6,9 @@ import {
 import { getIdentity } from './nickname.js'
 import { scoreOf, popBubble, isNew } from './bubbles.js'
 import { isAdmin, onAdmin } from './admin.js'
+import {
+  safeImageUrl, safeLink, normalizeLink, fileToDataUrl, isImageFile,
+} from './image.js'
 
 const $ = sel => document.querySelector(sel)
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
@@ -31,12 +34,14 @@ let history = []
 let detailId = null
 let unsubComments = null
 let selectedEmoji = EMOJIS[0]
+let pickedImage = null // 업로드/드랍/붙여넣기로 받은 사진 (data URL)
 
 export function init() {
   $('#identity-chip').textContent = `${me.avatar} ${me.nick}`
   $('#c-ava').textContent = me.avatar
 
   buildEmojiPicker()
+  setupImagePicker()
   $('#fab').addEventListener('click', openSubmit)
   $('#backdrop').addEventListener('click', closeAll)
   $('#submit-close').addEventListener('click', closeAll)
@@ -127,24 +132,153 @@ function openSubmit() {
   setTimeout(() => $('#f-name').focus(), 300)
 }
 
-async function onSubmitSnack(e) {
-  e.preventDefault()
-  const errEl = $('#f-error')
-  errEl.classList.add('hidden')
+/* ---------- 사진 넣기 : 링크 · 업로드 · 드래그앤드랍 · 붙여넣기 ---------- */
 
-  const name = $('#f-name').value.trim()
-  const url = $('#f-url').value.trim()
-  const reason = $('#f-reason').value.trim()
-  const image = $('#f-image').value.trim()
+function setupImagePicker() {
+  const drop = $('#image-drop')
+  const file = $('#f-file')
+  const urlInput = $('#f-image')
 
-  if (!/coupang\.com|coupa\.ng/i.test(url)) {
-    errEl.textContent = '쿠팡 링크가 맞는지 확인해주세요 (coupang.com 주소여야 해요)'
-    errEl.classList.remove('hidden')
+  file.addEventListener('click', ev => ev.stopPropagation())
+  drop.addEventListener('click', ev => { if (ev.target !== file) file.click() })
+  drop.addEventListener('keydown', ev => {
+    if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); file.click() }
+  })
+  file.addEventListener('change', () => {
+    const f = file.files?.[0]
+    file.value = '' // 같은 파일을 다시 골라도 change가 뜨도록
+    if (f) useImageFile(f)
+  })
+
+  for (const t of ['dragenter', 'dragover']) {
+    drop.addEventListener(t, ev => { ev.preventDefault(); drop.classList.add('over') })
+  }
+  for (const t of ['dragleave', 'dragend', 'drop']) {
+    drop.addEventListener(t, () => drop.classList.remove('over'))
+  }
+
+  // 건의 시트가 열려 있으면 화면 아무 데나 떨어뜨리거나 붙여넣어도 받는다.
+  // (겸사겸사 브라우저가 사진 파일로 이동해버리는 기본 동작도 막는다)
+  document.addEventListener('dragover', ev => {
+    if (hasFiles(ev.dataTransfer)) ev.preventDefault()
+  })
+  document.addEventListener('drop', ev => {
+    const tag = ev.target?.tagName
+    // 링크를 입력칸에 끌어다 놓는 건 원래대로 (쿠팡 링크 칸에 드롭하는 경우)
+    if (!hasFiles(ev.dataTransfer) && (tag === 'INPUT' || tag === 'TEXTAREA')) return
+    ev.preventDefault()
+    if (submitOpen()) onDropData(ev.dataTransfer)
+  })
+  document.addEventListener('paste', ev => { if (submitOpen()) onPasteData(ev) })
+
+  $('#image-clear').addEventListener('click', ev => { ev.stopPropagation(); clearImage() })
+  urlInput.addEventListener('input', () => {
+    if (urlInput.value.trim()) pickedImage = null // 주소를 직접 쓰면 그쪽을 쓴다
+    renderImagePreview()
+  })
+}
+
+function hasFiles(dt) {
+  return !!dt && [...(dt.types || [])].includes('Files')
+}
+
+function submitOpen() {
+  return $('#submit-sheet').classList.contains('open')
+}
+
+function onDropData(dt) {
+  if (!dt) return
+  const f = [...(dt.files || [])].find(isImageFile)
+  if (f) { useImageFile(f); return }
+  const text = dt.getData('text/uri-list') || dt.getData('text/plain')
+  if (text.trim()) useImageUrl(text)
+}
+
+function onPasteData(ev) {
+  const dt = ev.clipboardData
+  if (!dt) return
+  const item = [...(dt.items || [])].find(i => i.kind === 'file' && i.type.startsWith('image/'))
+  if (item) {
+    const f = item.getAsFile()
+    if (f) { ev.preventDefault(); useImageFile(f) }
     return
   }
-  if (image && !/^https?:\/\//.test(image)) {
-    errEl.textContent = '이미지 주소는 http(s)로 시작해야 해요'
-    errEl.classList.remove('hidden')
+  // 입력칸 안에서의 텍스트 붙여넣기는 기본 동작 그대로
+  const tag = ev.target?.tagName
+  if (tag === 'INPUT' || tag === 'TEXTAREA') return
+  const text = dt.getData('text/plain') || ''
+  if (safeImageUrl(normalizeLink(text))) { ev.preventDefault(); useImageUrl(text) }
+}
+
+async function useImageFile(f) {
+  if (!isImageFile(f)) { showError('이미지 파일만 넣을 수 있어요'); return }
+  const drop = $('#image-drop')
+  drop.classList.add('busy')
+  try {
+    pickedImage = await fileToDataUrl(f)
+    $('#f-image').value = ''
+    hideError()
+  } catch (err) {
+    console.error(err)
+    showError('사진을 읽지 못했어요. 다른 파일로 해볼까요?')
+  } finally {
+    drop.classList.remove('busy')
+    renderImagePreview()
+  }
+}
+
+function useImageUrl(text) {
+  const url = safeImageUrl(normalizeLink(text))
+  if (!url) { showError('이미지 주소는 http(s)로 시작해야 해요'); return }
+  pickedImage = null
+  $('#f-image').value = url
+  hideError()
+  renderImagePreview()
+}
+
+function clearImage() {
+  pickedImage = null
+  $('#f-image').value = ''
+  $('#f-file').value = ''
+  renderImagePreview()
+}
+
+// 업로드한 사진이 있으면 그게 우선, 없으면 주소칸
+function currentImage() {
+  return pickedImage || safeImageUrl($('#f-image').value)
+}
+
+function renderImagePreview() {
+  const img = currentImage()
+  const box = $('#image-preview')
+  box.style.backgroundImage = img ? `url("${img}")` : ''
+  box.classList.toggle('hidden', !img)
+  $('#image-hint').classList.toggle('hidden', !!img)
+  $('#image-clear').classList.toggle('hidden', !img)
+}
+
+function showError(msg) {
+  const el = $('#f-error')
+  el.textContent = msg
+  el.classList.remove('hidden')
+}
+
+function hideError() {
+  $('#f-error').classList.add('hidden')
+}
+
+async function onSubmitSnack(e) {
+  e.preventDefault()
+  hideError()
+
+  const name = $('#f-name').value.trim()
+  const url = normalizeLink($('#f-url').value)
+  const reason = $('#f-reason').value.trim()
+  const image = currentImage()
+
+  // 링크는 이제 선택 — 적었을 때만 형식을 본다
+  if (url && !safeLink(url)) {
+    showError('링크는 http(s)로 시작하는 주소를 넣어주세요')
     return
   }
 
@@ -152,15 +286,15 @@ async function onSubmitSnack(e) {
   btn.disabled = true
   try {
     await addSnack({
-      name, url, reason, emoji: selectedEmoji, image: image || null,
+      name, url: url || null, reason, emoji: selectedEmoji, image: image || null,
       author: { nick: me.nick, avatar: me.avatar },
     })
     e.target.reset()
+    clearImage()
     closeAll()
     celebrate()
   } catch (err) {
-    errEl.textContent = '앗, 등록에 실패했어요. 잠시 후 다시 시도해주세요'
-    errEl.classList.remove('hidden')
+    showError('앗, 등록에 실패했어요. 잠시 후 다시 시도해주세요')
     console.error(err)
   } finally {
     btn.disabled = false
@@ -191,8 +325,8 @@ function renderDetailHead() {
   if (!s) return
   const r = s.reactions || {}
   const mine = localStorage.getItem('tb_react_' + detailId)
-  const safeImage = typeof s.image === 'string' && /^https?:\/\//.test(s.image)
-    ? s.image.replace(/["\\]/g, '') : null
+  const safeImage = safeImageUrl(s.image)
+  const link = safeLink(s.url)
 
   $('#detail-head').innerHTML = `
     <div class="d-top">
@@ -205,7 +339,8 @@ function renderDetailHead() {
       </div>
     </div>
     ${s.reason ? `<p class="d-reason">“${esc(s.reason)}”</p>` : ''}
-    <a class="d-link" href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">🛒 쿠팡에서 보기</a>
+    ${link ? `<a class="d-link" href="${esc(link)}" target="_blank" rel="noopener noreferrer">${
+      /coupang\.com|coupa\.ng/i.test(link) ? '🛒 쿠팡에서 보기' : '🔗 링크 열어보기'}</a>` : ''}
     <div class="d-reactions">
       ${REACTIONS.map(([key, emoji, label]) => `
         <button type="button" data-react="${key}" class="${mine === key ? 'active' : ''}">
@@ -238,8 +373,7 @@ function renderHistory() {
     return
   }
   box.innerHTML = history.map(h => {
-    const safeImage = typeof h.image === 'string' && /^https?:\/\//.test(h.image)
-      ? h.image.replace(/["\\]/g, '') : null
+    const safeImage = safeImageUrl(h.image)
     const rejected = typeof h.rejectReason === 'string' && h.rejectReason.trim()
     return `
     <div class="h-item${rejected ? ' rejected' : ''}">

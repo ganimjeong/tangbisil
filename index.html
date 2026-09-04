@@ -38,17 +38,25 @@
       <label>간식 이름 *
         <input id="f-name" maxlength="40" required placeholder="예) 초코파이 情">
       </label>
-      <label>쿠팡 링크 *
-        <input id="f-url" required inputmode="url" placeholder="https://www.coupang.com/... 또는 링크 공유 주소">
+      <label>쿠팡 링크 <span class="opt">(선택)</span>
+        <input id="f-url" inputmode="url" placeholder="있으면 붙여넣기 — 없어도 건의할 수 있어요">
       </label>
       <label>건의 이유
         <textarea id="f-reason" maxlength="200" rows="2" placeholder="예) 야근엔 초콜릿이 국룰이라서요"></textarea>
       </label>
       <label>아이콘 고르기</label>
       <div id="emoji-picker"></div>
-      <label>상품 이미지 URL <span class="opt">(선택)</span>
-        <input id="f-image" inputmode="url" placeholder="쿠팡 상품 사진 길게 눌러 '이미지 주소 복사' 후 붙여넣기">
-      </label>
+      <label>상품 사진 <span class="opt">(선택 · 링크 · 업로드 · 드래그앤드랍)</span></label>
+      <div id="image-drop" class="img-drop" tabindex="0" role="button" aria-label="사진 넣기">
+        <input id="f-file" type="file" accept="image/*" hidden>
+        <div id="image-preview" class="img-preview hidden"></div>
+        <div id="image-hint" class="img-hint">
+          여기로 사진을 끌어다 놓거나 <b>탭해서 고르기</b><br>
+          복사한 이미지·주소는 그냥 붙여넣어도 돼요
+        </div>
+        <button id="image-clear" class="img-clear hidden" type="button" aria-label="사진 지우기">✕</button>
+      </div>
+      <input id="f-image" inputmode="url" placeholder="또는 이미지 주소(URL) 붙여넣기">
       <p id="f-error" class="err hidden"></p>
       <button class="primary" type="submit">건의 올리기 🚀</button>
     </form>

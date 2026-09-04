@@ -362,6 +362,59 @@ header {
   background: #fff0e5;
 }
 
+/* ---------- 사진 넣기 (링크 · 업로드 · 드래그앤드랍) ---------- */
+
+.img-drop {
+  position: relative;
+  border: 1.5px dashed #e2cfbf;
+  border-radius: 14px;
+  background: #fffdfa;
+  min-height: 96px;
+  padding: 12px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.img-drop.over {
+  border-color: var(--accent);
+  background: #fff2e7;
+}
+.img-drop.busy { opacity: 0.55; pointer-events: none; }
+
+.img-hint {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.6;
+  text-align: center;
+  color: var(--ink-soft);
+}
+.img-hint b { color: var(--accent-deep); }
+
+.img-preview {
+  width: 100%;
+  height: 150px;
+  border-radius: 10px;
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.img-clear {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  border: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(74, 47, 34, 0.55);
+  color: #fff;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+}
+
 .err { color: #d43d17; font-size: 13px; }
 
 .primary {

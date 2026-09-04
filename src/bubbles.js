@@ -1,4 +1,5 @@
 import { forceSimulation, forceCollide, forceManyBody, forceX, forceY } from 'd3-force'
+import { safeImageUrl } from './image.js'
 
 let sim = null
 let container = null
@@ -126,8 +127,7 @@ function updateEl(el, s, isKing) {
   el.classList.toggle('is-new', isNew(s.createdAt))
   const img = el.querySelector('.b-img')
   const emoji = el.querySelector('.b-emoji')
-  const safeImage = typeof s.image === 'string' && /^https?:\/\//.test(s.image)
-    ? s.image.replace(/["\\]/g, '') : null
+  const safeImage = safeImageUrl(s.image)
   if (safeImage) {
     img.style.backgroundImage = `url("${safeImage}")`
     img.style.display = ''
