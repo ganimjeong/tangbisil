@@ -286,7 +286,8 @@ async function onSubmitSnack(e) {
   btn.disabled = true
   try {
     await addSnack({
-      name, url: url || null, reason, emoji: selectedEmoji, image: image || null,
+      // 링크가 없을 땐 null이 아니라 빈 문자열 — 규칙이 url을 문자열로 요구한다
+      name, url: url || '', reason, emoji: selectedEmoji, image: image || null,
       author: { nick: me.nick, avatar: me.avatar },
     })
     e.target.reset()
